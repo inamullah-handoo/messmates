@@ -1,0 +1,165 @@
+<form class="ml-auto w-50 form-inline">
+    <select name="person" id="person" class="form-control w-25 mr-5">
+        {{#each peoples}}
+            <option value="{{person}}">{{person}}</option>
+        {{/each}}
+    </select>
+</form>
+<div class="row mt-5">
+    <div class="totals col-md-3"></div>
+    <div id="list" class="mx-auto col-md-9"></div>
+</div>
+
+
+<script>
+    $(document).ready(() => {
+        var sum = total = 0;
+        var output = date0 = date1 = date00 = date11 = '';
+
+        displayItems();
+        
+        $('#person')[0].addEventListener('change', displayItems);
+        
+        // display list function
+        function displayItems(){
+            let person = $('#person')[0].value;
+            $.ajax({
+                type:'GET',
+                url:'/items/'+person,
+                success:(response) => {
+                    let items = response;
+                    let months = [];
+                    let years = [];
+
+                    // calculate months and years of the items
+                    for(var i=0;i<items.length;i++){
+                        date0 = items[i].month;
+                        date00 = items[i].year;
+                        if(i==0){
+                            months.push(date0);
+                            years.push(date00)
+                            continue;
+                        }
+                        date1 = items[i-1].month;
+                        date11 = items[i-1].year;
+                        if(date0 != date1){
+                            months.push(date0);
+                            years.push(date00);
+                        }
+                    }
+                    
+                    // check if no items are found
+                    if(items.length == 0){
+                        output = `
+                        <div class="row alert alert-dark">
+                            <p class="mx-auto mb-0">No items found</p>
+                        </div>
+                        `;
+                    }else{
+                        // display the items list
+                        for(i=0; i<items.length; i++){
+                            if(items[i].paidBy == person){
+                                sum += items[i].itemPrice;
+                                output += `
+                                <div class="row alert alert-dark">
+                                    <div class="col-sm-9">
+                                        <ul class="list-unstyled m-0">
+                                            <li>
+                                                <div class="row">
+                                                    <div class="col-sm-3">Item Name</div>
+                                                    <div class="col-sm-1">:</div>
+                                                    <div class="col-sm-3">${items[i].itemName}</div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div class="row">
+                                                    <div class="col-sm-3">Item Price (Rs.)</div>
+                                                    <div class="col-sm-1">:</div>
+                                                    <div class="col-sm-3">${items[i].itemPrice}</div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div class="row">
+                                                    <div class="col-sm-3">Date</div>
+                                                    <div class="col-sm-1">:</div>
+                                                    <div class="col-sm-3">${items[i].day}-${items[i].month}-${items[i].year}</div>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="row mt-3">
+                                            <a href="/editItem/${items[i]._id}" class="form-control btn btn-secondary col mr-2">Edit</a>
+                                            <a data-id="${items[i]._id}" href="javascript:void(0)" class="deleteItem form-control btn btn-danger col">Delete</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                `;
+                            }
+                        }
+                    }
+                    $('#list')[0].innerHTML = output;
+
+                    // delete item async call
+                    $('.deleteItem').click(e => {
+                        $target = $(e.target);
+                        const id = $target.attr('data-id');
+                        if(confirm('Are you sure?')){
+                            $.ajax({
+                                type:'DELETE',
+                                url:'/deleteItem/'+id,
+                                success:(response) => {
+                                    alert(response);
+                                    window.location.href = '/';
+                                },
+                                error:(err) => {
+                                    console.log(err);
+                                }
+                            });
+                        }
+                    });
+
+                    // display total amount
+                    output = `<div class="text-uppercase btn btn-dark font-weight-bold w-100 text-left my-1">Grand Total : <span id="sum">${sum}</span></div>`;
+                    $('.totals')[0].innerHTML = output;
+
+                    sum = 0;
+                    output = '';
+                    let date = '';
+
+                    // display amount per month
+                    for(i=0;i<months.length;i++){
+                        for(var j=0; j<items.length; j++){
+                            items[j].month = items[j].month;
+                            if(months[i] == items[j].month && person == items[j].paidBy && years[i] == items[j].year){
+                                sum += items[j].itemPrice;
+                                date = items[j].month + '-' + items[j].year;
+                            }
+                        }
+                        total += sum;
+                        if(i==0){
+                            output += `<div class="text-uppercase btn btn-dark font-weight-bold w-100 text-left my-1">Total (${date}) : ${sum}</div>`;
+                            sum = 0;
+                            continue;
+                        }
+                        if(months[i] != months[i-1]){
+                            output += `<div class="text-uppercase btn btn-dark font-weight-bold w-100 text-left my-1">Total (${date}) : ${sum}</div>`;
+                        }
+                        sum = 0;
+                    }
+                    $('.totals')[0].innerHTML += output;
+
+                    // check for error in total amount
+                    if(total != $('#sum')[0].innerText){
+                        $('#sum')[0].innerText = 'Error';
+                    }
+                    sum = total = 0;
+                    output = '';
+                },
+                error:(err) => {
+                    console.log(err);
+                }
+            });
+        }
+    });
+</script>

@@ -1,0 +1,70 @@
+<div class="form w-50 mx-auto">
+    {{#each peoples}}
+        <div class="row alert alert-dark">
+            <div class="col-sm-8"><h5 class="mt-1 mb-0 text-capitalize">{{person}}</h5></div>
+            <div class="row col-sm-4">
+                <a href="javascript:void(0)" class="editPerson form-control btn btn btn-secondary col mr-2" data-id="{{_id}}">Edit</a>
+                <a data-id="{{_id}}" href="javascript:void(0)" class="deletePerson form-control btn btn-danger col">Delete</a>
+            </div>
+        </div>
+    {{/each}}
+    
+    <form method="POST" action="/addMessMates">
+        <div class="row alert alert-secondary">
+            <div class="form-group w-100 mb-0">
+                <input type="text" class="form-control w-75 ml-auto" name="person" placeholder="Add another">
+                {{#if errors}}
+                    {{#each errors}}
+                        {{#ifCond param 'person'}}
+                            <small class="text-danger">*{{msg}}</small>
+                        {{/ifCond}}
+                    {{/each}}
+                {{/if}}
+                <button type="submit" class="btn btn-success mt-2 form-control w-75 text-uppercase">Add</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    $(document).ready(() => {
+        $('.editPerson').click((e) => {
+            const id = e.target.getAttribute('data-id');
+            var output = `
+            <div class="form-inline w-100 mt-2">
+                <form method="POST" action="/editMessMates/${id}" class="w-100">
+                    <input type="text" class="form-control w-50 mr-3" name="editPerson" placeholder="Edit Name">
+                    {{#if errors}}
+                        {{#each errors}}
+                            {{#ifCond param 'editPerson'}}
+                                <small class="text-danger">*{{msg}}</small>
+                            {{/ifCond}}
+                        {{/each}}
+                    {{/if}}
+                    <button type="submit" class="btn btn-success form-control w-25 text-uppercase">Update</button>
+                </form>
+            </div>
+            `;
+            e.target.parentElement.parentElement.innerHTML += output;
+        });
+
+        // delete person async call
+        $('.deletePerson').click(e => {
+            $target = $(e.target);
+            const id = $target.attr('data-id');
+            if(confirm('All items related to it will also get deleted. Are you sure?')){
+                $.ajax({
+                    type:'DELETE',
+                    url:'/deletePerson/'+id,
+                    success:(response) => {
+                        alert(response);
+                        window.location.href = '/messMates';
+                    },
+                    error:(err) => {
+                        console.log(err);
+                    }
+                });
+            }
+        });
+    });
+</script>

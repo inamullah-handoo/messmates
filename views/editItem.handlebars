@@ -1,0 +1,74 @@
+<div class="form">
+    <form method="POST" action="/editItem/{{items._id}}" class="w-50 mx-auto">
+        <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" class="form-control w-75 ml-auto" name="date" value="{{items.year}}-{{items.month}}-{{items.day}}">
+            {{#if errors}}
+                {{#each errors}}
+                    {{#ifCond param 'date'}}
+                        <small class="text-danger">*{{msg}}</small>
+                    {{/ifCond}}
+                {{/each}}
+            {{/if}}
+        </div>
+        <div class="form-group">
+            <label for="itemName">Item Name</label>
+            <input type="text" class="form-control w-75 ml-auto" name="itemName" value="{{items.itemName}}">
+            {{#if errors}}
+                {{#each errors}}
+                    {{#ifCond param 'itemName'}}
+                        <small class="text-danger">*{{msg}}</small>
+                    {{/ifCond}}
+                {{/each}}
+            {{/if}}
+        </div>
+        <div class="form-group">
+            <label for="itemPrice">Item Price (Total)</label>
+            <input type="number" class="form-control w-75 ml-auto" name="itemPrice" value={{items.itemPrice}}>
+            {{#if errors}}
+                {{#each errors}}
+                    {{#ifCond param 'itemPrice'}}
+                        <small class="text-danger">*{{msg}}</small>
+                    {{/ifCond}}
+                {{/each}}
+            {{/if}}
+        </div>
+        <div class="form-group">
+            <label for="paidBy">PaidBy</label>
+            <select class="form-control w-75 ml-auto" name="paidBy"></select>
+            {{#if errors}}
+                {{#each errors}}
+                    {{#ifCond param 'paidBy'}}
+                        <small class="text-danger">*{{msg}}</small>
+                    {{/ifCond}}
+                {{/each}}
+            {{/if}}
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-success mt-2 form-control w-75 text-uppercase">Update</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    $(document).ready(() => {
+        $.ajax({
+            type: 'GET',
+            url: '/edit/'+window.location.pathname.substr(10),
+            success: (response) => {
+                item = response[0];
+                people = response[1];
+                var output = `<option value="${item.paidBy}">${item.paidBy}</option>`;
+                for(i=0; i<people.length; i++){
+                    if(item.paidBy !== people[i].person){
+                        output += `<option value="${people[i].person}">${people[i].person}</option>`;
+                    }
+                }
+                $('select')[0].innerHTML = output;
+            },
+            error:(err) => {
+                console.log(err);
+            }
+        });
+    });
+</script>

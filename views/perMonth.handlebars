@@ -1,0 +1,287 @@
+<form class="ml-auto w-50 form-inline">
+    <select  name="month" id="month" class="form-control w-12 mr-1"></select>
+    <select  name="year" id="year" class="form-control w-15 mr-3"></select>
+</form>
+<div class="row mt-5">
+    <div class="totals col-md-3">
+        <div class="text-uppercase btn btn-dark font-weight-bold w-100 text-left my-1">Total (This Month) : <span id="total"></span></div>
+        {{#each peoples}}
+            <div class="text-uppercase btn btn-dark font-weight-bold w-100 text-left my-1">Total ({{person}}) : <span id="total{{_id}}"></span></div>
+        {{/each}}
+    </div>
+    <div id="list" class="mx-auto col-md-9"></div>
+</div>
+
+<script>
+    $(document).ready(function(){
+        var sum = total = 0;
+        var output = date0 = date1 = itemDate = '';
+        var dates = [];
+
+        // display current date
+        var today = [Date().substr(8,2), Date().substr(4,3), Date().substr(11,4)];
+        switch(Date().substr(4,3)){
+            case 'Jan':
+                today[1] = '01';
+                break;
+            case 'Feb':
+                today[1] = '02';
+                break;
+            case 'Mar':
+                today[1] = '03';
+                break;
+            case 'Apr':
+                today[1] = '04';
+                break;
+            case 'May':
+                today[1] = '05';
+                break;
+            case 'Jun':
+                today[1] = '06';
+                break;
+            case 'Jul':
+                today[1] = '07';
+                break;
+            case 'Aug':
+                today[1] = '08';
+                break;
+            case 'Sep':
+                today[1] = '09';
+                break;
+            case 'Oct':
+                today[1] = '10';
+                break;
+            case 'Nov':
+                today[1] = '11';
+                break;
+            case 'Dec':
+                today[1] = '12';
+                break;
+        }
+        $('#month')[0].innerHTML = `<option value="${today[1]}">${today[1]}</option>`;
+        $('#year')[0].innerHTML = `<option value="${today[2]}">${today[2]}</option>`;
+
+        $.ajax({
+            type:'GET',
+            url: '/dates',
+            success:(response) => {
+                let month = response[1];
+                let year = response[2];
+
+                // display months(in db) according to current year
+                date = $('#year')[0].value;
+                for(i=0; i<year.length; i++){
+                    if(date == year[i]){
+                        dates.push(month[i]);
+                    }
+                }
+                dates = dates.sort((d1,d2) => {
+                    if(d1 > d2){
+                        return 1;
+                    }else{
+                        return -1;
+                    }
+                });
+                for(i=0; i<dates.length; i++){
+                    date0 = dates[i];
+                    if(i == 0 && today[1] != date0){
+                        output += `<option value="${date0}">${date0}</option>`;
+                        continue;
+                    }
+                    date1 = dates[i-1];
+                    if(date0 != date1 && today[1] != date0){
+                        output += `<option value="${date0}">${date0}</option>`;
+                    }
+                }
+                $('#month')[0].innerHTML += output;
+                output = '';
+                dates = [];
+                
+                // display all years(in db)
+                for(i=0; i<year.length; i++){
+                    dates.push(year[i]);
+                }
+                dates = dates.sort((d1,d2) => {
+                    if(d1 > d2){
+                        return 1;
+                    }else{
+                        return -1;
+                    }
+                });
+                for(i=0; i<dates.length; i++){
+                    date0 = dates[i];
+                    if(i == 0 && today[2] != date0){
+                        output += `<option value="${date0}">${date0}</option>`;
+                        continue;
+                    }
+                    date1 = dates[i-1];
+                    if(date0 != date1 && today[2] != date0){
+                        output += `<option value="${date0}">${date0}</option>`;
+                    }
+                }
+                $('#year')[0].innerHTML += output;
+                output = '';
+                dates = [];
+
+                displayItems();
+                
+                // change options of months depending upon change in year
+                $('#year')[0].addEventListener('change',() =>{
+                    date = $('#year')[0].value;
+                    for(i=0; i<year.length; i++){
+                        if(date == year[i]){
+                            dates.push(month[i]);
+                        }
+                    }
+                    dates = dates.sort((d1,d2) => {
+                        if(d1 > d2){
+                            return 1;
+                        }else{
+                            return -1;
+                        }
+                    });
+                    for(var j=0; j<dates.length; j++){
+                        date0 = dates[j];
+                        if(j==0){
+                            output += `<option value="${date0}">${date0}</option>`;
+                            continue;
+                        }
+                        date1 = dates[j-1];
+                        if(date0 != date1){
+                            output += `<option value="${date0}">${date0}</option>`;
+                        }
+                    }
+                    $('#month')[0].innerHTML = output;
+                    output = '';
+                    dates = [];
+                    displayItems();
+                });
+
+                $('#month')[0].addEventListener('change', displayItems);
+
+                // display list function 
+                function displayItems(){
+                    let date = $('#month')[0].value + '-' + $('#year')[0].value;
+
+                    $.ajax({
+                        type:'GET',
+                        url: '/itemsMonth/'+date,
+                        success:(response) =>{
+                            let items = response[0];
+                            let peoples = response[1];
+
+                            // calculate and display amount per person of current month
+                            for(i=0; i<peoples.length; i++){
+                                for(var j=0; j<items.length; j++){
+                                    itemsDate = items[j].month + '-' + items[j].year;
+                                    if(peoples[i].person == items[j].paidBy && itemsDate == date){
+                                        sum += items[j].itemPrice;
+                                    }
+                                }
+                                $(`#total${peoples[i]._id}`)[0].innerHTML = sum;
+                                total += sum;
+                                sum=0;
+                            }
+                            sum = 0;
+                            output = '';
+
+                            // check if no items are found
+                            if(items.length == 0){
+                                output = `
+                                <div class="row alert alert-dark">
+                                    <p class="mx-auto mb-0">No items found</p>
+                                </div>
+                                `;
+                            }else{
+                                // display the items list
+                                for(i=0; i<items.length; i++){
+                                    itemsDate = items[i].month + '-' + items[i].year;
+                                    if(itemsDate == date){
+                                        sum += items[i].itemPrice;
+                                        output += `
+                                        <div class="row alert alert-dark">
+                                            <div class="col-sm-9">
+                                                <ul class="list-unstyled m-0">
+                                                    <li>
+                                                        <div class="row">
+                                                            <div class="col-sm-3">Item Name</div>
+                                                            <div class="col-sm-1">:</div>
+                                                            <div class="col-sm-3">${items[i].itemName}</div>
+                                                        </div>
+                                                    </li>
+                                                    <li>
+                                                        <div class="row">
+                                                            <div class="col-sm-3">Item Price (Rs.)</div>
+                                                            <div class="col-sm-1">:</div>
+                                                            <div class="col-sm-3">${items[i].itemPrice}</div>
+                                                        </div>
+                                                    </li>
+                                                    <li>
+                                                        <div class="row">
+                                                            <div class="col-sm-3">Date</div>
+                                                            <div class="col-sm-1">:</div>
+                                                            <div class="col-sm-3">${items[i].day}-${itemsDate}</div>
+                                                        </div>
+                                                    </li>
+                                                    <li>
+                                                        <div class="row">
+                                                            <div class="col-sm-3">Paid By</div>
+                                                            <div class="col-sm-1">:</div>
+                                                            <div class="col-sm-3">${items[i].paidBy}</div>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <div class="row mt-3">
+                                                    <a href="/editItem/${items[i]._id}" class="form-control btn btn-secondary col mr-2">Edit</a>
+                                                    <a data-id="${items[i]._id}" href="javascript:void(0)" class="deleteItem form-control btn btn-danger col">Delete</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        `;
+                                    }
+                                }
+                            }
+                            $('#list')[0].innerHTML = output;
+
+                            // delete item async call
+                            $('.deleteItem').click(e => {
+                                $target = $(e.target);
+                                const id = $target.attr('data-id');
+                                if(confirm('Are you sure?')){
+                                    $.ajax({
+                                        type:'DELETE',
+                                        url:'/deleteItem/'+id,
+                                        success:(response) => {
+                                            alert(response);
+                                            window.location.href = '/';
+                                        },
+                                        error:(err) => {
+                                            console.log(err);
+                                        }
+                                    });
+                                }
+                            });
+
+                            // display the total amount of current month with error checking
+                            if (total == sum){
+                                $('#total')[0].innerHTML = sum;
+                            }else{
+                                $('#total')[0].innerHTML = 'Error';
+                            }
+                            sum = total = 0;
+                            output = '';
+                        },
+                        error:(err) => {
+                            console.log(err);
+                        }
+                    });
+                }
+            },
+            error:(err) => {
+                console.log(err);
+            }
+        });
+    });
+</script>
